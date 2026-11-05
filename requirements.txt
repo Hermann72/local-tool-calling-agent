@@ -1,0 +1,3 @@
+# Requires Python 3.10+ and a local Ollama installation (https://ollama.com)
+# Model used: ollama pull qwen3:4b-instruct
+ollama>=0.6
