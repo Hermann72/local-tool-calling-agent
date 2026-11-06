@@ -1,5 +1,8 @@
 
+import sys
+
 from app.agent import run_agent
+from app.core.ollama_client import MODEL, OllamaError, check_ollama
 
 
 def main():
@@ -8,9 +11,22 @@ def main():
     print("       LOCAL TOOL-CALLING AGENT")
     print("=" * 45)
 
+    try:
+        check_ollama()
+        print(f"Connected to Ollama (model: {MODEL})")
+
+    except OllamaError as error:
+        # Warn but keep going: the user can start Ollama and retry.
+        print(f"\n[!] {error}")
+
     while True:
 
-        user_input = input("\nYou: ").strip()
+        try:
+            user_input = input("\nYou: ").strip()
+
+        except (KeyboardInterrupt, EOFError):
+            print("\n\nAgent terminated.")
+            break
 
         if user_input.lower() in ["exit", "quit"]:
             print("\nAgent terminated.")
@@ -19,11 +35,27 @@ def main():
         if not user_input:
             continue
 
-        response = run_agent(user_input)
+        try:
+            response = run_agent(user_input)
+
+        except KeyboardInterrupt:
+            print("\n\nRequest cancelled.")
+            continue
+
+        except OllamaError as error:
+            print(f"\n[!] {error}")
+            continue
 
         print("\nAgent:")
         print(response)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+
+    except KeyboardInterrupt:
+        # Safety net, e.g. Ctrl+C during the startup check.
+        print("\nAgent terminated.")
+
+    sys.exit(0)

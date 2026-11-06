@@ -5,8 +5,10 @@ from app.core.ollama_client import send_message
 
 from app.tools.registry import (
     TOOLS,
-    AVAILABLE_FUNCTIONS
+    AVAILABLE_FUNCTIONS,
+    ARGUMENT_MODELS
 )
+from app.tools.validation import ToolArgumentError, validate_arguments
 
 
 def run_agent(user_input: str, max_iterations: int = 5) -> str:
@@ -84,14 +86,29 @@ def run_agent(user_input: str, max_iterations: int = 5) -> str:
             function = AVAILABLE_FUNCTIONS.get(function_name)
 
             if function is None:
-                result = f"Unknown tool: {function_name}"
+                result = (
+                    f"Unknown tool: {function_name}. "
+                    f"Available tools: {', '.join(AVAILABLE_FUNCTIONS)}"
+                )
 
             else:
                 try:
-                    result = function(**arguments)
+                    kwargs = validate_arguments(
+                        function_name,
+                        ARGUMENT_MODELS[function_name],
+                        arguments
+                    )
+
+                    if kwargs != arguments:
+                        print(f"Coerced arguments: {kwargs}")
+
+                    result = function(**kwargs)
+
+                except ToolArgumentError as error:
+                    result = str(error)
 
                 except Exception as error:
-                    result = f"Execution error: {error}"
+                    result = f"Execution error in '{function_name}': {error}"
 
             print(f"Tool result: {result}")
 
